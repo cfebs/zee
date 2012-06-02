@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Zee</title>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/prototype/1.7.0.0/prototype.js"></script>
+  <script type="text/javascript" src="/js/zee.js"></script>
+  <script type="text/javascript">
+    document.observe('dom:loaded', function() {
+      y = new Yahtzee($('zee'));
+    });
+  </script>
+  <style>
+  .keep {
+    border : 2px dashed #ccc;
+  }
+  .rollZone ul {
+    list-style-type: none;
+  }
+  .rollZone .die {
+    float: left;
+  }
+  </style>
+</head>
+<body>
+  <%= yield %>
+</body>
+</html>
