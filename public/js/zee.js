@@ -1,4 +1,61 @@
 
+var MultiPlayerGame = Class.create({
+  initialize: function(el) {
+    this.numPlayers = 2;
+    this.currentPlayer = 0;
+    this.games = [];
+    this.masterGame = null;
+    this.el = el;
+  },
+
+  startGame: function() {
+    $R(0, this.numPlayers).each(function(i) {
+      var y = new YahPlayer(this.masterGame);
+      y.afterReturnScore = this.cycleGame.bind(this);
+      this.games.push(y);
+    }.bind(this));
+
+    this.masterGame = this.games[this.currentPlayer];
+  },
+
+  cycleGame: function() {
+    this.currentPlayer == this.numPlayers-1 ? 0 : this.currentPlayer++;
+    $('log').update($('log').innerHTML+'switch to player ' + this.currentPlayer);
+    this.masterGame = this.games[this.currentPlayer];
+  },
+
+  addPlayer: function() {
+    this.numPlayers++;
+  },
+});
+
+var YahPlayer = Class.create({
+  initialize: function(game) {
+    this.topScore = 0;
+    this.bottomScore = 0;
+    this.topBonus = 0;
+    this.yahBonus = 0;
+    this.totalScore = 0;
+    this.yahCount = 0;
+
+    this.scores = $H({
+      'ones': { check: game.sumOf.bind(game, 1), section : 'top'},
+      'twos': { check: game.sumOf.bind(game, 2), section : 'top'},
+      'threes': { check: game.sumOf.bind(game, 3), section : 'top'},
+      'fours': { check: game.sumOf.bind(game, 4), section : 'top'},
+      'fives': { check: game.sumOf.bind(game, 5), section : 'top'},
+      'sixes': { check: game.sumOf.bind(game, 6), section : 'top'},
+      'three-kind': { check: game.kind.bind(game, 3), section : 'bottom'},
+      'four-kind': { check: game.kind.bind(game, 4), section : 'bottom'},
+      'full-house': { check: game.house.bind(game, 2), section : 'bottom'},
+      'small-straight': { check: game.straight.bind(game, 'small'), section : 'bottom'},
+      'large-straight': { check: game.straight.bind(game, 'large'), section : 'bottom'},
+      'chance': { check: game.sumOf.bind(game, null), section : 'bottom'},
+      'yah': { check: game.yah.bind(game), section : 'bottom'},
+    });
+  }
+});
+
 /**
  * ZEE
  */
@@ -6,8 +63,12 @@ var Yahtzee = Class.create({
   initialize: function(el) {
     this.container = el;
     this.dice = $A([]);
-    this.rollNumber = 0;
     this.rollButton = this.container.down('button');
+    this.testGame = this.fullGameRolls();
+    this.rollNumber = 0;
+    this.test = true;
+
+    $$('.scores .score').invoke('hide');
 
     // array of dice img tags
     this.diceElements = this.container.select('.rollZone .die img');
@@ -22,13 +83,14 @@ var Yahtzee = Class.create({
     // create 5 dice
     // value = number of the die
     // keep = did the user keep this for the next roll
-    $R(1, 5).each( function(i) {
-      this.dice.push({value : null, keep : false});
+    $R(0,4).each( function(i) {
+      this.dice.push({value : null, keep : false, element: this.diceElements[i]});
     }.bind(this));
 
     // testing
-    // this.dice = this.testRoll([6,6,6,6,6]);
-    // this.outputRoll();
+    //this.testRoll([6,6,6,6,6]);
+    //this.rollNumber = 1;
+    //this.outputRoll();
 
     // roll button calls roll()
     this.rollButton.on('click', function() {
@@ -37,21 +99,8 @@ var Yahtzee = Class.create({
 
     // hash storing a type of score mapped ot the function to score it
     // TODO make nicer
-    this.scores = $H({
-      'ones': { check: function(){ return this.sumOf(1)}.bind(this)},
-      'twos': { check: function(){ return this.sumOf(2)}.bind(this)},
-      'threes': { check: function(){ return this.sumOf(3)}.bind(this)},
-      'fours': { check: function(){ return this.sumOf(4)}.bind(this)},
-      'fives': { check: function(){ return this.sumOf(5)}.bind(this)},
-      'sixes': { check: function(){ return this.sumOf(6)}.bind(this)},
-      'three-kind': { check: function(){ return this.kind(3) }.bind(this)},
-      'four-kind': { check: function(){ return this.kind(4) }.bind(this)},
-      'full-house': { check: function(){ return this.house(2) }.bind(this)},
-      'small-straight': { check: function(){return this.straight('small') }.bind(this)},
-      'large-straight': { check: function(){return this.straight('large') }.bind(this)},
-      'chance': { check: function(){return this.sumOf(null)}.bind(this)},
-      'yah': { check: function(){return this.yah()}.bind(this)},
-    });
+    this.player = new YahPlayer(this);
+    this.scores = this.player.scores;
 
     // each score key maps to a TD in the .scores table
     // each TD has a <button> and a .score element
@@ -59,12 +108,16 @@ var Yahtzee = Class.create({
     // the .score element gets updated with the score calculation
     this.scores.each( function(pair) {
       var scoreButton = this.container.down('.scores .' + pair.key + ' button');
-
       var scoreContainer = this.container.down('.scores .' + pair.key + ' .score');
+
+      pair.value.score = null;
+      pair.value.button = scoreButton;
+      pair.value.container = scoreContainer;
+
       if (scoreButton) {
         scoreButton.on('click', function(event, el) {
           //alert(pair.value.check());
-          this.recordScore(pair.key, pair.value.check(), scoreButton, scoreContainer);
+          this.recordScore(pair.key, pair.value.check());
         }.bind(this));
       }
     }.bind(this));
@@ -73,13 +126,64 @@ var Yahtzee = Class.create({
   /**
    * TODO this is cruddy
    */
-  recordScore: function(key, score, button, container) {
+  recordScore: function(key, score) {
     if (this.rollNumber < 1) return;
-    this.scores.get(key).score = score;
-    container.update(score);
+
+    // if the roll is also a yahtzee
+    if (this.scores.get('yah').check() > 0) {
+      // already have a yahtzee
+      if (this.scores.get('yah').score > 0) {
+        this.player.yahBonus += 100;
+        this.player.yahCount++;
+      }
+    }
+
+    this.scores.get(key).score += score;
+
+    if (this.scores.get(key).section == 'top') {
+      this.player.topScore += score;
+    }
+
+    if (this.scores.get(key).section == 'bottom') {
+      this.player.bottomScore += score;
+    }
+
+    if (this.player.topScore >= 63 && this.player.topBonus == 0) {
+      this.player.topBonus = 35;
+    }
+
+    this.tally();
+
+    var button = this.scores.get(key).button;
+    var container = this.scores.get(key).container;
+
+    container.update(this.scores.get(key).score);
+    container.show();
     button.hide();
+
     this.rollNumber = 0;
     this.rollButton.disabled = false;
+
+    // reset keepers
+    this.dice.each(function(e) {
+      e.keep = false;
+      e.element.up().removeClassName('keep');
+    });
+
+    this.afterReturnScore();
+  },
+
+  afterReturnScore: function() {
+    return;
+  },
+
+  tally: function() {
+    this.container.down('.totals .top').update(this.player.topScore);
+    this.container.down('.totals .bottom').update(this.player.bottomScore);
+    this.container.down('.totals .topBonus').update(this.player.topBonus);
+    this.container.down('.totals .yahBonus').update(this.player.yahBonus);
+    this.container.down('.totals .yahCount').update(this.player.yahCount);
+    this.container.down('.totals .total').update(this.player.topScore + this.player.bottomScore + this.player.topBonus + this.player.yahBonus);
   },
 
   /**
@@ -95,18 +199,22 @@ var Yahtzee = Class.create({
     // die are not kept by default, the user's click toggles the keep value
     die.keep = !die.keep;
 
-    die.keep ? el.addClassName('keep') : el.removeClassName('keep');
+    die.keep ? el.up().addClassName('keep') : el.up().removeClassName('keep');
   },
 
   /**
    * Randomly rolls all non-kept dice
    */
   roll: function() {
-    this.dice.each( function(die, i) {
-      if (!die.keep) {
-        die.value = this.rand()
-      }
-    }.bind(this));
+    if (this.test && this.testGame.length > 0) {
+      this.testRoll(this.testGame.shift());
+    } else {
+      this.dice.each( function(die, i) {
+        if (!die.keep) {
+          die.value = this.rand()
+        }
+      }.bind(this));
+    }
 
     // write out the result of the row
     this.outputRoll();
@@ -129,8 +237,9 @@ var Yahtzee = Class.create({
    */
   outputRoll: function() {
     this.dice.each(function(die, i) {
-      this.diceElements[i].setAttribute('src', this.diceSrc(die.value));
+      die.element.setAttribute('src', this.diceSrc(die.value));
     }.bind(this));
+    this.container.down('.rollNum').update(this.rollNumber+1);
   },
 
   // random helper
@@ -175,9 +284,10 @@ var Yahtzee = Class.create({
    */
   getCounts: function() {
     var counts = []
-    $R(1,6).each(function(i){
+    $R(1,7).each(function(i){
       counts.push(0);
     });
+
     this.diceValues().each( function(v) {
       counts[v]++;
     });
@@ -212,7 +322,6 @@ var Yahtzee = Class.create({
    */
   straight: function(name) {
     var sorted = this.diceValues().sort(function(a,b){return a-b});
-    alert(sorted.inspect());
 
     var last = sorted.shift();
     var cnt = 1;
@@ -231,20 +340,44 @@ var Yahtzee = Class.create({
     return 0;
   },
 
+  message: function(mess) {
+    this.container.down('messageZone').update('message');
+  },
+
   /**
    * Yahtzee, 1 unique number
    */
   yah: function() {
-    if (this.diceValues().uniq().length == 1) return 50;
+    if (this.diceValues().uniq().length == 1) {
+      return 50;
+    }
   },
 
   ///// testing
   testRoll: function(list) {
-    var l = [];
-    list.each(function(v) {
-      l.push({value: v, keep: true});
-    });
-    return l;
-  }
+    list.each(function(v, i) {
+      this.dice[i].value = v;
+    }.bind(this));
+  },
 
+  fullGameRolls: function() {
+    l = [
+      [1,1,1,1,1],
+      [1,1,1,1,1],
+      [2,2,2,2,2],
+      [3,3,3,3,3],
+      [4,4,4,4,4],
+      [5,5,5,5,5],
+      [6,6,6,6,6],
+      [6,6,6,6,6],
+      [6,6,6,6,6],
+      [4,4,5,5,5],
+      [1,2,3,4,5],
+      [1,2,3,4,5],
+      [6,6,6,6,6],
+      [6,6,6,6,6],
+      [6,6,6,6,6]
+    ];
+    return l;
+  },
 });

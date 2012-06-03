@@ -1,100 +1,118 @@
 
 <div id="zee">
+  <p class="messageZone"></p>
   <div class="rollZone">
-    <ul>
+    <ul class="dice">
       <li class='die'><img src="/img/dice/blank.png" /></li>
       <li class='die'><img src="/img/dice/blank.png" /></li>
       <li class='die'><img src="/img/dice/blank.png" /></li>
       <li class='die'><img src="/img/dice/blank.png" /></li>
       <li class='die'><img src="/img/dice/blank.png" /></li>
     </ul>
-  <div class="rollNum"></div>
-  <button>Roll</button>
   </div>
-  <table class="scores">
-    <tr>
-      <td class="ones">
-        <h3>Ones</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="twos">
-        <h3>Twos</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="threes">
-        <h3>Threes</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="fours">
-        <h3>Fours</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="fives">
-        <h3>Fives</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="sixes">
-        <h3>Sixes</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-    </tr>
-    <tr>
-      <td class="three-kind">
-        <h3>Three of a kind</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="four-kind">
-        <h3>Four of a kind</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="full-house">
-        <h3>Full House</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="small-straight">
-        <h3>Small Straight</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="large-straight">
-        <h3>Large Straight</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="sixes">
-        <h3>Sixes</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
-      <td class="yah">
-        <h3>Yahtzee</h3>
-        <button>Score</button>
-        <p class="score">
-        </p>
-      </td>
+  <br class="clear">
 
-    </tr>
+  <p class="center">
+    <button class="rollButton green button radius">Roll <span class="rollNum"></span></button>
+  </p>
 
+  <hr>
+  <div class="scores">
+
+  <div class="row scoreRow">
+    <div class="ones two columns">
+      <h4>Ones</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="twos two columns">
+      <h4>Twos</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="threes two columns">
+      <h4>Threes</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="fours two columns">
+      <h4>Fours</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="fives two columns">
+      <h4>Fives</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="sixes two columns">
+      <h4>Sixes</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+  </div>
+
+  <div class="row scoreRow">
+    <div class="three-kind two columns">
+      <h4>Three of a kind</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="four-kind two columns">
+      <h4>Four of a kind</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="full-house two columns">
+      <h4>Full House</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="small-straight two columns">
+      <h4>Small Straight</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="large-straight two columns">
+      <h4>Large Straight</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+    <div class="chance two columns">
+      <h4>Chance</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+  </div>
+  <div class="row scoreRow">
+    <div class="yah two columns">
+      <h4>Yahtzee</h4>
+      <button class="small black button">Score</button>
+      <p class="score">0</p>
+    </div>
+  </div>
+  </div>
+
+  <hr>
+  <table class="totals center">
+    <tbody>
+      <tr>
+        <td>Top</td>
+        <td class="top">0</td>
+      </tr>
+      <tr>
+        <td>Bottom</td>
+        <td class="bottom">0</td>
+      </tr>
+      <tr>
+        <td>Bonus</td>
+        <td>Top: <span class="topBonus">0</span><br>Extra Yahtzee: <span class="yahBonus">0</span> (<span class="yahCount">0</span>)</td>
+      </tr>
+      <tr>
+        <td>Total</td>
+        <td class="total">0</td>
+      </tr>
+    </tbody>
   </table>
 </div>
+<pre id="log"></pre>
