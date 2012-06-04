@@ -1,2 +1,2 @@
-require './zee'
+require 'zee'
 run Sinatra::Application
