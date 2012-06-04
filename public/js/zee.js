@@ -1,35 +1,69 @@
+function game_log(s) {
+  $('log') && $('log').update(s+'\n'+$('log').innerHTML);
+}
 
 var MultiPlayerGame = Class.create({
   initialize: function(el) {
-    this.numPlayers = 2;
+    this.numPlayers = 1;
     this.currentPlayer = 0;
-    this.games = [];
-    this.masterGame = null;
+    this.players= [];
+    this.masterGame = new Yahtzee(el);
+    this.masterGame.afterReturnScore = this.cycleGame.bind(this);
     this.el = el;
+    this.playerList = $('playerZone');
+
+    $$('.players .addHuman').first().on('click', function() {
+      this.addHuman();
+    }.bind(this));
+
+    $$('.players .addCPU').first().on('click', function() {
+      this.addCPU();
+    }.bind(this));
   },
 
   startGame: function() {
-    $R(0, this.numPlayers).each(function(i) {
+    $R(1, this.numPlayers).each(function(i) {
       var y = new YahPlayer(this.masterGame);
-      y.afterReturnScore = this.cycleGame.bind(this);
-      this.games.push(y);
+      this.players.push(y);
     }.bind(this));
 
-    this.masterGame = this.games[this.currentPlayer];
+    this.masterGame.player = this.players[this.currentPlayer];
   },
 
   cycleGame: function() {
-    this.currentPlayer == this.numPlayers-1 ? 0 : this.currentPlayer++;
-    $('log').update($('log').innerHTML+'switch to player ' + this.currentPlayer);
-    this.masterGame = this.games[this.currentPlayer];
+    if (this.numPlayers == 1) return;
+
+    this.currentPlayer = this.currentPlayer == this.numPlayers-1 ? 0 : this.currentPlayer+1;
+    this.masterGame.player = this.players[this.currentPlayer];
+
+    (function() {
+      this.switchToPlayer(this.currentPlayer);
+    }.bind(this)).delay('1.2');
   },
 
-  addPlayer: function() {
-    this.numPlayers++;
+  switchToPlayer: function(p) {
+    //game_log('Switched to player' + this.currentPlayer);
+    this.masterGame.tally();
+    this.masterGame.redrawScores();
   },
+
+  addHuman: function() {
+    this.numPlayers++;
+    this.playerList.select('li').last().insert({
+      before: new Element('li').update('Player ' + this.numPlayers)
+    })
+  },
+
+  addCPU: function() {
+    this.numPlayers++;
+    this.playerList.select('li').last().insert({
+      before: new Element('li').update()
+    })
+  }
 });
 
 var YahPlayer = Class.create({
+
   initialize: function(game) {
     this.topScore = 0;
     this.bottomScore = 0;
@@ -37,23 +71,18 @@ var YahPlayer = Class.create({
     this.yahBonus = 0;
     this.totalScore = 0;
     this.yahCount = 0;
+    this.cpuNames = ['Rodney', 'Tarzan', 'Infamous J', 'Deep Brown']
 
-    this.scores = $H({
-      'ones': { check: game.sumOf.bind(game, 1), section : 'top'},
-      'twos': { check: game.sumOf.bind(game, 2), section : 'top'},
-      'threes': { check: game.sumOf.bind(game, 3), section : 'top'},
-      'fours': { check: game.sumOf.bind(game, 4), section : 'top'},
-      'fives': { check: game.sumOf.bind(game, 5), section : 'top'},
-      'sixes': { check: game.sumOf.bind(game, 6), section : 'top'},
-      'three-kind': { check: game.kind.bind(game, 3), section : 'bottom'},
-      'four-kind': { check: game.kind.bind(game, 4), section : 'bottom'},
-      'full-house': { check: game.house.bind(game, 2), section : 'bottom'},
-      'small-straight': { check: game.straight.bind(game, 'small'), section : 'bottom'},
-      'large-straight': { check: game.straight.bind(game, 'large'), section : 'bottom'},
-      'chance': { check: game.sumOf.bind(game, null), section : 'bottom'},
-      'yah': { check: game.yah.bind(game), section : 'bottom'},
-    });
-  }
+    var scoreNames = game.scoreChecker.keys();
+    this.scores = $H();
+
+    // scores = { 'yah' : 0, 'ones' : 0 ... }
+    scoreNames.each(function(s) {
+      this.scores.set(s, null);
+    }.bind(this));
+
+  },
+
 });
 
 /**
@@ -63,7 +92,7 @@ var Yahtzee = Class.create({
   initialize: function(el) {
     this.container = el;
     this.dice = $A([]);
-    this.rollButton = this.container.down('button');
+    this.rollButton = this.container.down('.rollButton');
     this.testGame = this.fullGameRolls();
     this.rollNumber = 0;
     this.test = true;
@@ -92,25 +121,30 @@ var Yahtzee = Class.create({
     //this.rollNumber = 1;
     //this.outputRoll();
 
-    // roll button calls roll()
-    this.rollButton.on('click', function() {
-      this.roll();
-    }.bind(this));
-
-    // hash storing a type of score mapped ot the function to score it
-    // TODO make nicer
-    this.player = new YahPlayer(this);
-    this.scores = this.player.scores;
+    this.scoreChecker= $H({
+      'ones': { check: this.sumOf.bind(this, 1), section : 'top'},
+      'twos': { check: this.sumOf.bind(this, 2), section : 'top'},
+      'threes': { check: this.sumOf.bind(this, 3), section : 'top'},
+      'fours': { check: this.sumOf.bind(this, 4), section : 'top'},
+      'fives': { check: this.sumOf.bind(this, 5), section : 'top'},
+      'sixes': { check: this.sumOf.bind(this, 6), section : 'top'},
+      'three-kind': { check: this.kind.bind(this, 3), section : 'bottom'},
+      'four-kind': { check: this.kind.bind(this, 4), section : 'bottom'},
+      'full-house': { check: this.house.bind(this, 2), section : 'bottom'},
+      'small-straight': { check: this.straight.bind(this, 'small'), section : 'bottom'},
+      'large-straight': { check: this.straight.bind(this, 'large'), section : 'bottom'},
+      'chance': { check: this.sumOf.bind(this, null), section : 'bottom'},
+      'yah': { check: this.yah.bind(this), section : 'bottom'},
+    });
 
     // each score key maps to a TD in the .scores table
     // each TD has a <button> and a .score element
     // the button triggers recordScore
     // the .score element gets updated with the score calculation
-    this.scores.each( function(pair) {
+    this.scoreChecker.each( function(pair) {
       var scoreButton = this.container.down('.scores .' + pair.key + ' button');
       var scoreContainer = this.container.down('.scores .' + pair.key + ' .score');
 
-      pair.value.score = null;
       pair.value.button = scoreButton;
       pair.value.container = scoreContainer;
 
@@ -121,6 +155,17 @@ var Yahtzee = Class.create({
         }.bind(this));
       }
     }.bind(this));
+
+
+    // roll button calls roll()
+    this.rollButton.on('click', function() {
+      this.roll();
+    }.bind(this));
+
+    // hash storing a type of score mapped ot the function to score it
+    // TODO make nicer
+    this.player = new YahPlayer(this);
+
   },
 
   /**
@@ -130,21 +175,21 @@ var Yahtzee = Class.create({
     if (this.rollNumber < 1) return;
 
     // if the roll is also a yahtzee
-    if (this.scores.get('yah').check() > 0) {
+    if (this.scoreChecker.get('yah').check() > 0) {
       // already have a yahtzee
-      if (this.scores.get('yah').score > 0) {
+      if (this.player.scores.get('yah') > 0) {
         this.player.yahBonus += 100;
         this.player.yahCount++;
       }
     }
 
-    this.scores.get(key).score += score;
+    this.player.scores.set(key, score);
 
-    if (this.scores.get(key).section == 'top') {
+    if (this.scoreChecker.get(key).section == 'top') {
       this.player.topScore += score;
     }
 
-    if (this.scores.get(key).section == 'bottom') {
+    if (this.scoreChecker.get(key).section == 'bottom') {
       this.player.bottomScore += score;
     }
 
@@ -152,14 +197,27 @@ var Yahtzee = Class.create({
       this.player.topBonus = 35;
     }
 
-    this.tally();
+    this.tally(); // output to scoreboard
+    this.redrawScores(); // hide/show buttons and scores
+    this.afterReturnScore(); // callback
+  },
 
-    var button = this.scores.get(key).button;
-    var container = this.scores.get(key).container;
+  redrawScores : function() {
+    this.scoreChecker.each(function(pair) {
 
-    container.update(this.scores.get(key).score);
-    container.show();
-    button.hide();
+      var button = pair.value.button
+      var container = pair.value.container
+      var score = this.player.scores.get(pair.key)
+
+      if (score == null)  {
+        button.show();
+        container.hide();
+      } else {
+        button.hide();
+        container.show();
+        container.update(score);
+      }
+    }.bind(this));
 
     this.rollNumber = 0;
     this.rollButton.disabled = false;
@@ -170,7 +228,6 @@ var Yahtzee = Class.create({
       e.element.up().removeClassName('keep');
     });
 
-    this.afterReturnScore();
   },
 
   afterReturnScore: function() {
@@ -342,6 +399,8 @@ var Yahtzee = Class.create({
 
   message: function(mess) {
     this.container.down('messageZone').update('message');
+    h
+
   },
 
   /**
