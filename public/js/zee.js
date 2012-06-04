@@ -419,8 +419,6 @@ var Yahtzee = Class.create({
 
   message: function(mess) {
     this.container.down('messageZone').update('message');
-    h
-
   },
 
   /**
@@ -430,6 +428,7 @@ var Yahtzee = Class.create({
     if (this.diceValues().uniq().length == 1) {
       return 50;
     }
+    return 0;
   },
 
   ///// testing
