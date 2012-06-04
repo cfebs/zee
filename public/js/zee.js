@@ -43,19 +43,6 @@ var MultiPlayerGame = Class.create({
     this.masterGame.redrawScores();
 
     var p = this.masterGame.player;
-
-    // if it's a cpu then do some autoplay
-    if (p.isCPU) {
-      var getBestScore = function() {
-        var scores = $H()
-        this.masterGame.scoreChecker.each(function(pair) {
-          scores.set(pair.key, pair.value);
-        });
-      }
-      var rollCycle = function() {
-        this.masterGame.roll()
-      }
-    }
   },
 
   addHuman: function() {
@@ -258,6 +245,7 @@ var Yahtzee = Class.create({
 
     this.rollNumber = 0;
     this.rollButton.disabled = false;
+    this.container.down('.rollNum').update('');
 
     // reset keepers
     this.dice.each(function(e) {
