@@ -119,7 +119,7 @@ var Yahtzee = Class.create({
     this.rollButton = this.container.down('.rollButton');
     this.testGame = this.fullGameRolls();
     this.rollNumber = 0;
-    this.test = true;
+    this.test = false;
 
     $$('.scores .score').invoke('hide');
 
@@ -139,11 +139,6 @@ var Yahtzee = Class.create({
     $R(0,4).each( function(i) {
       this.dice.push({value : null, keep : false, element: this.diceElements[i]});
     }.bind(this));
-
-    // testing
-    //this.testRoll([6,6,6,6,6]);
-    //this.rollNumber = 1;
-    //this.outputRoll();
 
     this.scoreChecker= $H({
       'ones': { check: this.sumOf.bind(this, 1), section : 'top'},
