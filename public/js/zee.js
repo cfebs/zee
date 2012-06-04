@@ -4,7 +4,6 @@ function game_log(s) {
 
 var MultiPlayerGame = Class.create({
   initialize: function(el) {
-    this.numPlayers = 1;
     this.currentPlayer = 0;
     this.players= [];
     this.masterGame = new Yahtzee(el);
@@ -22,56 +21,85 @@ var MultiPlayerGame = Class.create({
   },
 
   startGame: function() {
-    $R(1, this.numPlayers).each(function(i) {
-      var y = new YahPlayer(this.masterGame);
-      this.players.push(y);
-    }.bind(this));
-
-    this.masterGame.player = this.players[this.currentPlayer];
+    var y = new YahPlayer(this.masterGame);
+    this.players.push(y);
+    this.masterGame.player = y;
   },
 
   cycleGame: function() {
-    if (this.numPlayers == 1) return;
-
-    this.currentPlayer = this.currentPlayer == this.numPlayers-1 ? 0 : this.currentPlayer+1;
-    this.masterGame.player = this.players[this.currentPlayer];
-
     (function() {
       this.switchToPlayer(this.currentPlayer);
     }.bind(this)).delay('1.2');
   },
 
   switchToPlayer: function(p) {
-    //game_log('Switched to player' + this.currentPlayer);
+    var num = this.players.length
+    if (num == 1) return
+
+    this.currentPlayer = this.currentPlayer == num-1 ? 0 : this.currentPlayer+1;
+    this.masterGame.player = this.players[this.currentPlayer];
+
     this.masterGame.tally();
     this.masterGame.redrawScores();
+
+    var p = this.masterGame.player;
+
+    // if it's a cpu then do some autoplay
+    if (p.isCPU) {
+      var getBestScore = function() {
+        var scores = $H()
+        this.masterGame.scoreChecker.each(function(pair) {
+          scores.set(pair.key, pair.value);
+        });
+      }
+      var rollCycle = function() {
+        this.masterGame.roll()
+      }
+    }
   },
 
   addHuman: function() {
-    this.numPlayers++;
+    var p = new YahPlayer(this.masterGame)
+    this.players.push(p)
+
     this.playerList.select('li').last().insert({
-      before: new Element('li').update('Player ' + this.numPlayers)
+      before: new Element('li').update('Player ' + this.players.length)
     })
   },
 
   addCPU: function() {
-    this.numPlayers++;
+    var p = new YahPlayer(this.masterGame)
+    p.isCPU = true
+    this.players.push(p)
+
     this.playerList.select('li').last().insert({
-      before: new Element('li').update()
+      before: new Element('li').update('<span class="cpu">CPU</span>' + p.randomCPUName())
     })
-  }
+  },
+
 });
 
 var YahPlayer = Class.create({
 
   initialize: function(game) {
-    this.topScore = 0;
-    this.bottomScore = 0;
-    this.topBonus = 0;
-    this.yahBonus = 0;
-    this.totalScore = 0;
-    this.yahCount = 0;
-    this.cpuNames = ['Rodney', 'Tarzan', 'Infamous J', 'Deep Brown']
+    this.topScore = 0
+    this.bottomScore = 0
+    this.topBonus = 0
+    this.yahBonus = 0
+    this.totalScore = 0
+    this.yahCount = 0
+    this.isCPU = false
+
+    this.namePrefixes = [
+      'Infamous', 'The', 'Mr.', 'Mrs.', 'Dr.',
+      'Pro', 'Duke of', 'Master'
+    ]
+
+    this.nameNouns = [
+      'Bobby', 'Anne', 'Collin', 'Yah', 'Zee', 'J',
+      'Nate', 'Charlie', 'Mike', 'Gerber', 'Chow Mein',
+      'Jenny', 'Jessica', 'Debra', 'Ruby', 'Suzane'
+    ]
 
     var scoreNames = game.scoreChecker.keys();
     this.scores = $H();
@@ -81,6 +109,15 @@ var YahPlayer = Class.create({
       this.scores.set(s, null);
     }.bind(this));
 
+  },
+
+  randomCPUName: function() {
+    var randEl = function(c) {
+      var i = Math.floor(Math.random()*c.length)
+      return c[i]
+    }
+
+    return randEl(this.namePrefixes) + ' ' + randEl(this.nameNouns)
   },
 
 });
