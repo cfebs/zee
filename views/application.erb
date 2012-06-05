@@ -11,6 +11,7 @@
   <script type="text/javascript">
     document.observe('dom:loaded', function() {
       y = new MultiPlayerGame($('zee'));
+      y.addHuman();
       y.startGame();
       //y = new Yahtzee($('zee'));
     });

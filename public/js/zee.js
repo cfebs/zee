@@ -21,9 +21,7 @@ var MultiPlayerGame = Class.create({
   },
 
   startGame: function() {
-    var y = new YahPlayer(this.masterGame);
-    this.players.push(y);
-    this.masterGame.player = y;
+    this.masterGame.player = this.players[0];
   },
 
   cycleGame: function() {
@@ -42,16 +40,25 @@ var MultiPlayerGame = Class.create({
     this.masterGame.tally();
     this.masterGame.redrawScores();
 
+    $$('.players li').each(function(p, i) {
+      i == this.currentPlayer ? p.addClassName('currentPlayer') : p.removeClassName('currentPlayer');
+    }.bind(this));
+
     var p = this.masterGame.player;
   },
 
   addHuman: function() {
     var p = new YahPlayer(this.masterGame)
     this.players.push(p)
-
+    var pElement = new Element('li').update('Player ' + this.players.length);
     this.playerList.select('li').last().insert({
-      before: new Element('li').update('Player ' + this.players.length)
-    })
+      before: pElement
+    });
+
+    pElement.on('click', function(event, el) {
+      var index = el.up().previousSiblings().size();
+      // TODO output logs here
+    }.bind(this));
   },
 
   addCPU: function() {
@@ -66,6 +73,9 @@ var MultiPlayerGame = Class.create({
 
 });
 
+/**
+ * A yahtzee player
+ */
 var YahPlayer = Class.create({
 
   initialize: function(game) {
@@ -76,6 +86,7 @@ var YahPlayer = Class.create({
     this.totalScore = 0
     this.yahCount = 0
     this.isCPU = false
+    this.playLog = [];
 
     this.namePrefixes = [
       'Infamous', 'The', 'Mr.', 'Mrs.', 'Dr.',
@@ -96,6 +107,10 @@ var YahPlayer = Class.create({
       this.scores.set(s, null);
     }.bind(this));
 
+  },
+
+  formatPlayLog: function() {
+    this.playLog.inspect();
   },
 
   randomCPUName: function() {
@@ -120,6 +135,7 @@ var Yahtzee = Class.create({
     this.testGame = this.fullGameRolls();
     this.rollNumber = 0;
     this.test = false;
+    this.totalRolls = 0;
 
     $$('.scores .score').invoke('hide');
 
@@ -169,7 +185,6 @@ var Yahtzee = Class.create({
 
       if (scoreButton) {
         scoreButton.on('click', function(event, el) {
-          //alert(pair.value.check());
           this.recordScore(pair.key, pair.value.check());
         }.bind(this));
       }
@@ -191,6 +206,7 @@ var Yahtzee = Class.create({
    * TODO this is cruddy
    */
   recordScore: function(key, score) {
+
     if (this.rollNumber < 1) return;
 
     // if the roll is also a yahtzee
@@ -202,6 +218,7 @@ var Yahtzee = Class.create({
       }
     }
 
+    this.player.playLog.push($H({'score' : key+' '+score}));
     this.player.scores.set(key, score);
 
     if (this.scoreChecker.get(key).section == 'top') {
@@ -283,6 +300,11 @@ var Yahtzee = Class.create({
    * Randomly rolls all non-kept dice
    */
   roll: function() {
+    if (this.totalRolls == 0) {
+      $$('.players .addHuman').first().disabled = true;
+    }
+
+    this.totalRolls++;
     if (this.test && this.testGame.length > 0) {
       this.testRoll(this.testGame.shift());
     } else {
@@ -292,6 +314,8 @@ var Yahtzee = Class.create({
         }
       }.bind(this));
     }
+
+    this.player.playLog.push($H({'roll' : this.dice.clone()}));
 
     // write out the result of the row
     this.outputRoll();
